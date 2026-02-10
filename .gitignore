@@ -1,0 +1,6 @@
+cat << 'EOF' > .gitignore
+node_modules/
+userskillhub.db
+.env
+EOF
+
