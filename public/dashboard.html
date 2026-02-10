@@ -11,25 +11,27 @@
 <ul id="sessions"></ul>
 
 <script>
+let previousSessions = {};
+
 async function load() {
-  // Display student info
+  // Load user info
   const me = await fetch("/me").then(r => r.json());
   document.getElementById("me").textContent = JSON.stringify(me, null, 2);
 
-  // Display all users
+  // Load all users
   const users = await fetch("/users").then(r => r.json());
   const usersList = document.getElementById("users");
   usersList.innerHTML = "";
   users.forEach(u => usersList.innerHTML += `<li>${u.email} (${u.role})</li>`);
 
-  // Display all courses with request buttons
+  // Load courses with request buttons
   const courses = await fetch("/courses").then(r => r.json());
   const coursesList = document.getElementById("courses");
   coursesList.innerHTML = "";
   courses.forEach(c => {
     coursesList.innerHTML += `
       <li>
-        ${c.title} - ${c.instructor} 
+        ${c.title} - ${c.instructor}
         <button onclick="requestCourse(${c.id})">Request</button>
       </li>`;
   });
@@ -38,29 +40,37 @@ async function load() {
   loadSessions();
 }
 
-// Fetch and display student's requested/upcoming sessions
 async function loadSessions() {
   const sessions = await fetch("/student-sessions").then(r => r.json());
   const sessionsList = document.getElementById("sessions");
   sessionsList.innerHTML = "";
+
   sessions.forEach(s => {
-    sessionsList.innerHTML += `<li>${s.title} [${s.status}]</li>`;
+    let color = s.status === "accepted" ? "green" :
+                s.status === "rejected" ? "red" : "gray";
+
+    sessionsList.innerHTML += `<li style="color:${color}" id="session-${s.id}">${s.title} [${s.status}]</li>`;
+
+    // Notify student if status changed
+    if (previousSessions[s.id] && previousSessions[s.id] !== s.status) {
+      alert(`Status updated for "${s.title}": ${s.status}`);
+    }
+    previousSessions[s.id] = s.status;
   });
 }
 
-// Request a new course session
 async function requestCourse(courseId) {
   await fetch("/request", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ course_id: courseId })
   });
-
-  // Reload sessions immediately
-  loadSessions();
+  loadSessions(); // immediate update
 }
 
-// Initial load
+// Auto-refresh every 3 seconds
+setInterval(loadSessions, 3000);
+
 load();
 </script>
 

@@ -8,8 +8,11 @@ async function loadRequests() {
   list.innerHTML = "";
 
   data.forEach(r => {
+    let color = r.status === "accepted" ? "green" :
+                r.status === "rejected" ? "red" : "gray";
+
     list.innerHTML += `
-      <li>
+      <li style="color:${color}">
         ${r.student} → ${r.title} [${r.status}]
         <button onclick="act(${r.id},'accepted')">Accept</button>
         <button onclick="act(${r.id},'rejected')">Reject</button>
@@ -20,13 +23,12 @@ async function loadRequests() {
 // Accept or reject a request
 async function act(id, status) {
   await fetch(`/requests/${id}/${status}`, { method: "POST" });
-  loadRequests(); // Refresh list immediately
+  loadRequests(); // refresh immediately
 }
 
-// Auto-refresh every 5 seconds
-setInterval(loadRequests, 5000);
+// Auto-refresh every 3 seconds
+setInterval(loadRequests, 3000);
 
-// Initial load
 loadRequests();
 </script>
 
