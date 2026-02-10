@@ -84,12 +84,20 @@ app.get("/requests", (req, res) => {
 });
 
 app.post("/requests/:id/:status", (req, res) => {
+  const { id, status } = req.params;
+  const allowed = ["accepted", "rejected"];
+  if (!allowed.includes(status)) return res.status(400).send("Invalid status");
+
   db.run(
     "UPDATE session_requests SET status=? WHERE id=?",
-    [req.params.status, req.params.id],
-    () => res.send("Updated")
+    [status, id],
+    function(err) {
+      if (err) return res.status(500).send("DB error");
+      res.send({ updated: this.changes });
+    }
   );
 });
+
 
 db.run(`
   INSERT OR IGNORE INTO courses (id,title,instructor_id)
