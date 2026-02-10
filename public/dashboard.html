@@ -1,7 +1,14 @@
-<h2>User Dashboard</h2>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard</title>
+</head>
+<body>
+<h2>Student Dashboard</h2>
 <pre id="me"></pre>
 
-<h3>Users</h3>
+<h3>All Users</h3>
 <ul id="users"></ul>
 
 <h3>Courses</h3>
@@ -14,17 +21,17 @@
 let previousSessions = {};
 
 async function load() {
-  // Load user info
+  // Current user info
   const me = await fetch("/me").then(r => r.json());
   document.getElementById("me").textContent = JSON.stringify(me, null, 2);
 
-  // Load all users
+  // Load users
   const users = await fetch("/users").then(r => r.json());
   const usersList = document.getElementById("users");
   usersList.innerHTML = "";
   users.forEach(u => usersList.innerHTML += `<li>${u.email} (${u.role})</li>`);
 
-  // Load courses with request buttons
+  // Load courses
   const courses = await fetch("/courses").then(r => r.json());
   const coursesList = document.getElementById("courses");
   coursesList.innerHTML = "";
@@ -36,7 +43,6 @@ async function load() {
       </li>`;
   });
 
-  // Load student sessions
   loadSessions();
 }
 
@@ -51,7 +57,7 @@ async function loadSessions() {
 
     sessionsList.innerHTML += `<li style="color:${color}" id="session-${s.id}">${s.title} [${s.status}]</li>`;
 
-    // Notify student if status changed
+    // Optional: notify student when status changes
     if (previousSessions[s.id] && previousSessions[s.id] !== s.status) {
       alert(`Status updated for "${s.title}": ${s.status}`);
     }
@@ -73,4 +79,6 @@ setInterval(loadSessions, 3000);
 
 load();
 </script>
+</body>
+</html>
 

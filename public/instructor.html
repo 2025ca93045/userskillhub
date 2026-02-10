@@ -1,4 +1,11 @@
-<h2>Instructor Requests</h2>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Instructor Dashboard</title>
+</head>
+<body>
+<h2>Instructor Dashboard</h2>
 <ul id="list"></ul>
 
 <script>
@@ -20,10 +27,9 @@ async function loadRequests() {
   });
 }
 
-// Accept or reject a request
 async function act(id, status) {
   await fetch(`/requests/${id}/${status}`, { method: "POST" });
-  loadRequests(); // refresh immediately
+  loadRequests();
 }
 
 // Auto-refresh every 3 seconds
@@ -31,4 +37,6 @@ setInterval(loadRequests, 3000);
 
 loadRequests();
 </script>
+</body>
+</html>
 
