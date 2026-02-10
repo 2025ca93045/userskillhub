@@ -11,37 +11,56 @@
 <ul id="sessions"></ul>
 
 <script>
+async function load() {
+  // Display student info
+  const me = await fetch("/me").then(r => r.json());
+  document.getElementById("me").textContent = JSON.stringify(me, null, 2);
+
+  // Display all users
+  const users = await fetch("/users").then(r => r.json());
+  const usersList = document.getElementById("users");
+  usersList.innerHTML = "";
+  users.forEach(u => usersList.innerHTML += `<li>${u.email} (${u.role})</li>`);
+
+  // Display all courses with request buttons
+  const courses = await fetch("/courses").then(r => r.json());
+  const coursesList = document.getElementById("courses");
+  coursesList.innerHTML = "";
+  courses.forEach(c => {
+    coursesList.innerHTML += `
+      <li>
+        ${c.title} - ${c.instructor} 
+        <button onclick="requestCourse(${c.id})">Request</button>
+      </li>`;
+  });
+
+  // Load student sessions
+  loadSessions();
+}
+
+// Fetch and display student's requested/upcoming sessions
 async function loadSessions() {
   const sessions = await fetch("/student-sessions").then(r => r.json());
+  const sessionsList = document.getElementById("sessions");
+  sessionsList.innerHTML = "";
   sessions.forEach(s => {
-    sessions.innerHTML += `<li>${s.title} [${s.status}]</li>`;
+    sessionsList.innerHTML += `<li>${s.title} [${s.status}]</li>`;
   });
 }
 
-loadSessions();
-</script>
-
-<script>
-async function load() {
-  document.getElementById("me").textContent =
-    JSON.stringify(await fetch("/me").then(r=>r.json()),null,2);
-
-  (await fetch("/users").then(r=>r.json()))
-    .forEach(u => users.innerHTML += `<li>${u.email} (${u.role})</li>`);
-
-  (await fetch("/courses").then(r=>r.json()))
-    .forEach(c => courses.innerHTML +=
-      `<li>${c.title} - ${c.instructor}
-       <button onclick="req(${c.id})">Request</button></li>`);
-}
-
-function req(id) {
-  fetch("/request", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ course_id:id })
+// Request a new course session
+async function requestCourse(courseId) {
+  await fetch("/request", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ course_id: courseId })
   });
+
+  // Reload sessions immediately
+  loadSessions();
 }
 
+// Initial load
 load();
 </script>
+
