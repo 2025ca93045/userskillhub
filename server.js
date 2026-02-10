@@ -99,3 +99,14 @@ db.run(`
 app.listen(3000, () =>
   console.log("UserSkillHub running on http://0.0.0.0:3000")
 );
+app.get("/student-sessions", (req, res) => {
+  if (!req.session.user) return res.sendStatus(401);
+
+  db.all(`
+    SELECT sr.id, c.title, sr.status
+    FROM session_requests sr
+    JOIN courses c ON sr.course_id = c.id
+    WHERE sr.user_id = ?
+  `, [req.session.user.id], (_, rows) => res.json(rows));
+});
+

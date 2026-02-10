@@ -7,6 +7,20 @@
 <h3>Courses</h3>
 <ul id="courses"></ul>
 
+<h3>My Sessions</h3>
+<ul id="sessions"></ul>
+
+<script>
+async function loadSessions() {
+  const sessions = await fetch("/student-sessions").then(r => r.json());
+  sessions.forEach(s => {
+    sessions.innerHTML += `<li>${s.title} [${s.status}]</li>`;
+  });
+}
+
+loadSessions();
+</script>
+
 <script>
 async function load() {
   document.getElementById("me").textContent =
