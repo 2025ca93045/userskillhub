@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Browse Skills</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+    }
+    .skill-card {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .skill-info {
+      flex: 1;
+    }
+    .skill-name {
+      font-weight: bold;
+      font-size: 16px;
+      color: #333;
+    }
+    .skill-teacher {
+      color: #666;
+      font-size: 14px;
+    }
+    .skill-level {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+    .level-beginner {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .level-intermediate {
+      background-color: #fff3cd;
+      color: #856404;
+    }
+    .level-advanced {
+      background-color: #d1ecf1;
+      color: #0c5460;
+    }
+    .skill-description {
+      color: #666;
+      font-size: 14px;
+      margin-top: 5px;
+      font-style: italic;
+    }
+    button {
+      padding: 8px 15px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    .filter-section {
+      margin-bottom: 20px;
+    }
+    .filter-section input {
+      padding: 8px;
+      width: 300px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .nav {
+      margin-bottom: 20px;
+    }
+    .nav a {
+      margin-right: 15px;
+      color: #007bff;
+      text-decoration: none;
+    }
+    .nav a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+<div class="nav">
+  <a href="/dashboard.html">← Back to Dashboard</a>
+</div>
+
+<h1>Browse Skills</h1>
+<p>Find peers who can help you learn skills!</p>
+
+<div class="filter-section">
+  <input id="search" type="text" placeholder="Search by skill name or teacher email..." />
+</div>
+
+<div id="skills-container"></div>
+
+<script>
+let allSkills = [];
+let currentUser = null;
+
+async function loadUser() {
+  const user = await fetch('/me').then(r => r.json());
+  currentUser = user;
+}
+
+async function loadSkills() {
+  allSkills = await fetch('/browse-skills').then(r => r.json());
+  render();
+}
+
+function render() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const container = document.getElementById('skills-container');
+  container.innerHTML = '';
+
+  allSkills
+    .filter(s => 
+      s.name.toLowerCase().includes(search) || 
+      s.email.toLowerCase().includes(search)
+    )
+    .forEach(skill => {
+      const levelClass = `level-${skill.level.toLowerCase()}`;
+      const isSelf = currentUser && skill.user_id === currentUser.id;
+      const canRequest = currentUser && skill.user_id !== currentUser.id;
+      
+      container.innerHTML += `
+        <div class="skill-card">
+          <div class="skill-info">
+            <div class="skill-name">${skill.name}</div>
+            <div class="skill-teacher">by ${skill.email}</div>
+            <span class="skill-level ${levelClass}">${skill.level}</span>
+            <div class="skill-description">${skill.description || '(No description)'}</div>
+          </div>
+          <button 
+            onclick="requestMentoring(${skill.user_id}, ${skill.id})"
+            ${isSelf ? 'disabled' : ''}
+            ${!currentUser ? 'disabled' : ''}
+          >
+            ${isSelf ? 'Your Skill' : 'Request Help'}
+          </button>
+        </div>`;
+    });
+}
+
+async function requestMentoring(mentorId, skillId) {
+  if (!currentUser) return alert('Please log in first');
+  if (mentorId === currentUser.id) return alert('Cannot request help from yourself');
+  
+  const res = await fetch('/skill-request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mentor_id: mentorId, skill_id: skillId })
+  });
+  
+  if (res.ok) {
+    alert('Mentoring request sent!');
+    loadSkills();
+  } else {
+    const msg = await res.text();
+    alert('Error: ' + msg);
+  }
+}
+
+document.getElementById('search').addEventListener('input', render);
+
+// Load and render
+loadUser().then(() => loadSkills());
+
+// Auto-refresh every 3 seconds
+setInterval(loadSkills, 3000);
+</script>
+</body>
+</html>
