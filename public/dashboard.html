@@ -6,6 +6,9 @@
 </head>
 <body>
 <h2>Student Dashboard</h2>
+<div style="margin-bottom: 20px;">
+  <a href="/browse-skills.html" style="padding: 8px 15px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">Browse Skills</a>
+</div>
 <pre id="me"></pre>
 
 <h3>All Users</h3>
@@ -16,6 +19,29 @@
 
 <h3>My Sessions</h3>
 <ul id="sessions"></ul>
+
+<h3>My Skills</h3>
+<div>
+  <form id="skill-form" onsubmit="event.preventDefault(); addSkill();">
+    <input id="skill-name" placeholder="Skill name" required />
+    <select id="skill-level">
+      <option>Beginner</option>
+      <option>Intermediate</option>
+      <option>Advanced</option>
+    </select>
+    <input id="skill-desc" placeholder="Short description" />
+    <button>Add Skill</button>
+  </form>
+  <ul id="skills"></ul>
+</div>
+
+<h3>Mentoring Requests Received</h3>
+<p><small>Requests from students wanting to learn from you</small></p>
+<ul id="skill-requests-received"></ul>
+
+<h3>Mentoring Requests Sent</h3>
+<p><small>Your pending requests to learn from other mentors</small></p>
+<ul id="skill-requests-sent"></ul>
 
 <script>
 let previousSessions = {};
@@ -76,8 +102,78 @@ async function requestCourse(courseId) {
 
 // Auto-refresh every 3 seconds
 setInterval(loadSessions, 3000);
+// Refresh skills periodically
+setInterval(loadSkills, 3000);
+// Auto-refresh skill requests
+setInterval(loadSkillRequestsReceived, 3000);
+setInterval(loadSkillRequestsSent, 3000);
 
 load();
+
+async function loadSkills() {
+  const skills = await fetch('/user-skills').then(r => r.json());
+  const skillsList = document.getElementById('skills');
+  skillsList.innerHTML = '';
+  skills.forEach(s => {
+    skillsList.innerHTML += `
+      <li id="user-skill-${s.id}">
+        ${s.name} (${s.level}) - ${s.description || ''}
+        <button onclick="removeSkill(${s.id})">Remove</button>
+      </li>`;
+  });
+}
+
+async function addSkill() {
+  const name = document.getElementById('skill-name').value.trim();
+  const level = document.getElementById('skill-level').value;
+  const description = document.getElementById('skill-desc').value.trim();
+  if (!name) return;
+  await fetch('/user-skills', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, level, description })
+  });
+  document.getElementById('skill-form').reset();
+  loadSkills();
+}
+
+async function removeSkill(id) {
+  await fetch(`/user-skills/${id}`, { method: 'DELETE' });
+  loadSkills();
+}
+
+async function loadSkillRequestsReceived() {
+  const reqs = await fetch('/skill-requests-received').then(r => r.json()).catch(() => []);
+  const list = document.getElementById('skill-requests-received');
+  list.innerHTML = '';
+  reqs.forEach(r => {
+    let color = r.status === 'accepted' ? 'green' : r.status === 'rejected' ? 'red' : 'gray';
+    list.innerHTML += `
+      <li style="color:${color}">
+        ${r.learner} wants to learn ${r.skill} [${r.status}]
+        <button onclick="respondSkillRequest(${r.id},'accepted')">Accept</button>
+        <button onclick="respondSkillRequest(${r.id},'rejected')">Reject</button>
+      </li>`;
+  });
+}
+
+async function loadSkillRequestsSent() {
+  const reqs = await fetch('/skill-requests-sent').then(r => r.json()).catch(() => []);
+  const list = document.getElementById('skill-requests-sent');
+  list.innerHTML = '';
+  reqs.forEach(r => {
+    let color = r.status === 'accepted' ? 'green' : r.status === 'rejected' ? 'red' : 'gray';
+    list.innerHTML += `
+      <li style="color:${color}">
+        Requested to learn ${r.skill} from ${r.mentor} [${r.status}]
+      </li>`;
+  });
+}
+
+async function respondSkillRequest(id, status) {
+  await fetch(`/skill-requests/${id}/${status}`, { method: 'POST' });
+  loadSkillRequestsReceived();
+}
 </script>
 </body>
 </html>
