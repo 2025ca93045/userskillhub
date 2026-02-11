@@ -1,33 +1,84 @@
-<h2>User Dashboard</h2>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard</title>
+</head>
+<body>
+<h2>Student Dashboard</h2>
 <pre id="me"></pre>
 
-<h3>Users</h3>
+<h3>All Users</h3>
 <ul id="users"></ul>
 
 <h3>Courses</h3>
 <ul id="courses"></ul>
 
+<h3>My Sessions</h3>
+<ul id="sessions"></ul>
+
 <script>
+let previousSessions = {};
+
 async function load() {
-  document.getElementById("me").textContent =
-    JSON.stringify(await fetch("/me").then(r=>r.json()),null,2);
+  // Current user info
+  const me = await fetch("/me").then(r => r.json());
+  document.getElementById("me").textContent = JSON.stringify(me, null, 2);
 
-  (await fetch("/users").then(r=>r.json()))
-    .forEach(u => users.innerHTML += `<li>${u.email} (${u.role})</li>`);
+  // Load users
+  const users = await fetch("/users").then(r => r.json());
+  const usersList = document.getElementById("users");
+  usersList.innerHTML = "";
+  users.forEach(u => usersList.innerHTML += `<li>${u.email} (${u.role})</li>`);
 
-  (await fetch("/courses").then(r=>r.json()))
-    .forEach(c => courses.innerHTML +=
-      `<li>${c.title} - ${c.instructor}
-       <button onclick="req(${c.id})">Request</button></li>`);
+  // Load courses
+  const courses = await fetch("/courses").then(r => r.json());
+  const coursesList = document.getElementById("courses");
+  coursesList.innerHTML = "";
+  courses.forEach(c => {
+    coursesList.innerHTML += `
+      <li>
+        ${c.title} - ${c.instructor}
+        <button onclick="requestCourse(${c.id})">Request</button>
+      </li>`;
+  });
+
+  loadSessions();
 }
 
-function req(id) {
-  fetch("/request", {
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({ course_id:id })
+async function loadSessions() {
+  const sessions = await fetch("/student-sessions").then(r => r.json());
+  const sessionsList = document.getElementById("sessions");
+  sessionsList.innerHTML = "";
+
+  sessions.forEach(s => {
+    let color = s.status === "accepted" ? "green" :
+                s.status === "rejected" ? "red" : "gray";
+
+    sessionsList.innerHTML += `<li style="color:${color}" id="session-${s.id}">${s.title} [${s.status}]</li>`;
+
+    // Optional: notify student when status changes
+    if (previousSessions[s.id] && previousSessions[s.id] !== s.status) {
+      alert(`Status updated for "${s.title}": ${s.status}`);
+    }
+    previousSessions[s.id] = s.status;
   });
 }
 
+async function requestCourse(courseId) {
+  await fetch("/request", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ course_id: courseId })
+  });
+  loadSessions(); // immediate update
+}
+
+// Auto-refresh every 3 seconds
+setInterval(loadSessions, 3000);
+
 load();
 </script>
+</body>
+</html>
+

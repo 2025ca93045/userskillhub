@@ -1,18 +1,42 @@
-<h2>Instructor Requests</h2>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Instructor Dashboard</title>
+</head>
+<body>
+<h2>Instructor Dashboard</h2>
 <ul id="list"></ul>
 
 <script>
-fetch("/requests").then(r=>r.json()).then(data => {
+async function loadRequests() {
+  const list = document.getElementById("list");
+  const data = await fetch("/requests").then(r => r.json());
+  list.innerHTML = "";
+
   data.forEach(r => {
+    let color = r.status === "accepted" ? "green" :
+                r.status === "rejected" ? "red" : "gray";
+
     list.innerHTML += `
-      <li>${r.student} → ${r.title} [${r.status}]
+      <li style="color:${color}">
+        ${r.student} → ${r.title} [${r.status}]
         <button onclick="act(${r.id},'accepted')">Accept</button>
         <button onclick="act(${r.id},'rejected')">Reject</button>
       </li>`;
   });
-});
-
-function act(id,s) {
-  fetch(`/requests/${id}/${s}`, { method:"POST" });
 }
+
+async function act(id, status) {
+  await fetch(`/requests/${id}/${status}`, { method: "POST" });
+  loadRequests();
+}
+
+// Auto-refresh every 3 seconds
+setInterval(loadRequests, 3000);
+
+loadRequests();
 </script>
+</body>
+</html>
+
